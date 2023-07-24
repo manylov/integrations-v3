@@ -17,13 +17,11 @@ import "../../lib/constants.sol";
 import {CurveV1AdapterHelper, DAI_TO_LP, USDC_TO_LP, USDT_TO_LP, LINK_TO_LP} from "./CurveV1AdapterHelper.sol";
 
 // EXCEPTIONS
-import {ZeroAddressException} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
 /// @title CurveV1Adapter4AssetsTest
 /// @notice Designed for unit test purposes only
-contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
+contract CurveV1Adapter4AssetsTest is TestHelper, CurveV1AdapterHelper {
     CurveV1Adapter4Assets public adapter;
     CurveV1Mock_4Assets public curveV1Mock;
 
@@ -58,10 +56,10 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
             address lp_token = curveV1Mock.lp_token();
             addMockPriceFeed(lp_token, 1e8);
 
-            evm.prank(CONFIGURATOR);
+            vm.prank(CONFIGURATOR);
             creditConfigurator.addCollateralToken(lp_token, 8800);
 
-            evm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
+            vm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
             adapter = new CurveV1Adapter4Assets(
                 address(creditManager),
                 address(curveV1Mock),
@@ -82,10 +80,10 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
             address lp_token = curveV1Mock.lp_token();
             addMockPriceFeed(lp_token, 1e8);
 
-            evm.prank(CONFIGURATOR);
+            vm.prank(CONFIGURATOR);
             creditConfigurator.addCollateralToken(lp_token, 8800);
 
-            evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+            vm.expectRevert(TokenNotAllowedException.selector);
             adapter = new CurveV1Adapter4Assets(
                 address(creditManager),
                 address(curveV1Mock),
@@ -99,13 +97,13 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
     function test_ACV1_4_03_liquidity_functions_revert_if_user_has_no_account() public {
         uint256[N_COINS] memory data = [uint256(1), uint256(2), uint256(3), uint256(4)];
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.add_liquidity, (data, 0)));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.remove_liquidity, (0, data)));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.remove_liquidity_imbalance, (data, 1)));
     }
 
@@ -135,7 +133,8 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
 
         expectAddLiquidityCalls(USER, callData, N_COINS);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cDAI, creditAccount, DAI_ACCOUNT_AMOUNT - DAI_TO_LP);
 
@@ -174,7 +173,8 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
 
         expectRemoveLiquidityCalls(USER, callData, N_COINS);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cDAI, creditAccount, DAI_TO_LP);
 
@@ -209,7 +209,8 @@ contract CurveV1Adapter4AssetsTest is DSTest, CurveV1AdapterHelper {
 
         expectRemoveLiquidityImbalanceCalls(USER, callData, N_COINS, expectedAmounts);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cDAI, creditAccount, 0);
 

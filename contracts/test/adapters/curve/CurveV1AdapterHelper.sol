@@ -14,7 +14,7 @@ import {ICurveV1Adapter, ICurveV1AdapterExceptions} from "../../../interfaces/cu
 import {ICurvePoolStETH} from "../../../integrations/curve/ICurvePoolStETH.sol";
 import {ICurvePool} from "../../../integrations/curve/ICurvePool.sol";
 import {ICRVToken} from "../../../integrations/curve/ICRVToken.sol";
-import {ICreditManagerV2} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 import {CurveV1StETHMock} from "../../mocks/integrations/CurveV1StETHMock.sol";
 
 import {CurveV1Mock} from "../../mocks/integrations/CurveV1Mock.sol";
@@ -42,7 +42,7 @@ uint256 constant LINK_TO_LP = LINK_ACCOUNT_AMOUNT / 5;
 
 /// @title CurveV1AdapterHelper
 /// @notice Designed for unit test purposes only
-contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExceptions {
+contract CurveV1AdapterHelper is TestHelper, AdapterTestHelper, ICurveV1AdapterExceptions {
     address internal _curveV1MockAddr;
     address internal _adapterAddr;
 
@@ -112,12 +112,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         lpToken = address(ICurvePool(_curveV1MockAddr).token());
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(lpToken, _priceFeed);
         creditConfigurator.addCollateralToken(lpToken, 9300);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         if (nCoins == 2) {
             _adapterAddr = address(
@@ -150,7 +150,7 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
             revert("costructor: Incorrect nCoins parameter");
         }
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(_curveV1MockAddr, _adapterAddr);
 
         tokenTestSuite.mint(Tokens.cDAI, USER, DAI_ACCOUNT_AMOUNT);
@@ -170,9 +170,9 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
             tokenTestSuite.mint(Tokens.cLINK, _curveV1MockAddr, LINK_ACCOUNT_AMOUNT);
         }
 
-        evm.label(_adapterAddr, "ADAPTER");
-        evm.label(_curveV1MockAddr, "CURVE_MOCK");
-        evm.label(lpToken, "CURVE_LP_TOKEN");
+        vm.label(_adapterAddr, "ADAPTER");
+        vm.label(_curveV1MockAddr, "CURVE_MOCK");
+        vm.label(lpToken, "CURVE_LP_TOKEN");
     }
 
     function _setUpCurveStETHSuite() internal {
@@ -210,7 +210,7 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
             )
         );
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         // creditConfigurator.addCollateralToken(steth, 8300);
 
         cft.priceOracle().addPriceFeed(lpToken, _priceFeed);
@@ -226,12 +226,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         creditConfigurator.allowContract(_curveV1stETHPoolGateway, _adapterStETHAddr);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
-        evm.label(_adapterStETHAddr, "ADAPTER_STETH");
-        evm.label(_curveV1stETHPoolGateway, "CURVE_STETH_GATEWAY");
-        evm.label(_curveV1stETHMockAddr, "CURVE_STETH_POOL_MOCK");
-        evm.label(lpToken, "CURVE_LP_STECRV_TOKEN");
+        vm.label(_adapterStETHAddr, "ADAPTER_STETH");
+        vm.label(_curveV1stETHPoolGateway, "CURVE_STETH_GATEWAY");
+        vm.label(_curveV1stETHMockAddr, "CURVE_STETH_POOL_MOCK");
+        vm.label(lpToken, "CURVE_LP_STECRV_TOKEN");
     }
 
     function _setUpCurveMetapoolSuite() internal {
@@ -258,12 +258,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         address baseLpToken = address(ICurvePool(_basePoolAddr).token());
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(baseLpToken, _priceFeed);
         creditConfigurator.addCollateralToken(baseLpToken, 9300);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         tokenTestSuite.mint(Tokens.cDAI, _basePoolAddr, DAI_ACCOUNT_AMOUNT);
         tokenTestSuite.mint(Tokens.cUSDC, _basePoolAddr, USDC_ACCOUNT_AMOUNT);
@@ -292,12 +292,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         lpToken = address(ICurvePool(_curveV1MockAddr).token());
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(lpToken, _priceFeed);
         creditConfigurator.addCollateralToken(lpToken, 9300);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         _adapterAddr = address(
             new CurveV1Adapter2Assets(
@@ -308,15 +308,15 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
             )
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(_curveV1MockAddr, _adapterAddr);
 
         tokenTestSuite.mint(Tokens.cLINK, _curveV1MockAddr, LINK_ACCOUNT_AMOUNT);
         CurveV1Mock(_basePoolAddr).mintLP(_curveV1MockAddr, DAI_ACCOUNT_AMOUNT);
 
-        evm.label(_adapterAddr, "ADAPTER");
-        evm.label(_curveV1MockAddr, "CURVE_MOCK");
-        evm.label(lpToken, "CURVE_LP_TOKEN");
+        vm.label(_adapterAddr, "ADAPTER");
+        vm.label(_curveV1MockAddr, "CURVE_MOCK");
+        vm.label(lpToken, "CURVE_LP_TOKEN");
     }
 
     function _setUpCurveCryptoSuite() internal {
@@ -343,12 +343,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         address baseLpToken = address(ICurvePool(_basePoolAddr).token());
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(baseLpToken, _basePriceFeed);
         creditConfigurator.addCollateralToken(baseLpToken, 9300);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         tokenTestSuite.mint(Tokens.cDAI, _basePoolAddr, LINK_ACCOUNT_AMOUNT * 100);
         tokenTestSuite.mint(Tokens.cUSDC, _basePoolAddr, LINK_ACCOUNT_AMOUNT * 100);
@@ -378,12 +378,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
 
         lpToken = address(ICurvePool(_curveV1MockAddr).token());
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(lpToken, _priceFeed);
         creditConfigurator.addCollateralToken(lpToken, 9300);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         _adapterAddr = address(
             new CurveV1Adapter2Assets(
@@ -394,15 +394,15 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
             )
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(_curveV1MockAddr, _adapterAddr);
 
         tokenTestSuite.mint(Tokens.cLINK, _curveV1MockAddr, LINK_ACCOUNT_AMOUNT);
         CurveV1Mock(_basePoolAddr).mintLP(_curveV1MockAddr, DAI_ACCOUNT_AMOUNT * 100);
 
-        evm.label(_adapterAddr, "ADAPTER");
-        evm.label(_curveV1MockAddr, "CURVE_MOCK");
-        evm.label(lpToken, "CURVE_LP_TOKEN");
+        vm.label(_adapterAddr, "ADAPTER");
+        vm.label(_curveV1MockAddr, "CURVE_MOCK");
+        vm.label(lpToken, "CURVE_LP_TOKEN");
     }
 
     //
@@ -416,12 +416,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
         for (uint256 i = 0; i < nCoins; i++) {
             poolTokens[i] = tokenTestSuite.addressOf(poolTkns[i]);
             if (creditManager.tokenMasksMap(poolTokens[i]) == 0) {
-                evm.startPrank(CONFIGURATOR);
+                vm.startPrank(CONFIGURATOR);
                 cft.priceOracle().addPriceFeed(
                     poolTokens[i], cft.priceOracle().priceFeeds(tokenTestSuite.addressOf(poolTkns[i]))
                 );
                 creditConfigurator.addCollateralToken(poolTokens[i], 9300);
-                evm.stopPrank();
+                vm.stopPrank();
             }
         }
     }
@@ -434,13 +434,13 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
         for (uint256 i = 0; i < nCoins; i++) {
             underlyingPoolTokens[i] = tokenTestSuite.addressOf(underlyingPoolTkns[i]);
             if (creditManager.tokenMasksMap(underlyingPoolTokens[i]) == 0) {
-                evm.startPrank(CONFIGURATOR);
+                vm.startPrank(CONFIGURATOR);
                 cft.priceOracle().addPriceFeed(
                     underlyingPoolTokens[i],
                     cft.priceOracle().priceFeeds(tokenTestSuite.addressOf(underlyingPoolTkns[i]))
                 );
                 creditConfigurator.addCollateralToken(underlyingPoolTokens[i], 9300);
-                evm.stopPrank();
+                vm.stopPrank();
             }
         }
     }
@@ -474,12 +474,12 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
         crv.mint(USER, amount);
         crv.set_minter(address(curveV1Mock));
 
-        evm.startPrank(USER);
+        vm.startPrank(USER);
         IERC20(address(crv)).approve(address(creditManager), type(uint256).max);
 
         creditFacade.addCollateral(USER, address(crv), amount);
 
-        evm.stopPrank();
+        vm.stopPrank();
     }
 
     //
@@ -511,32 +511,32 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
     ) internal {
         uint256 nCoins = curvePoolTokens.length;
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
         for (uint256 i = 0; i < nCoins; i++) {
-            evm.expectCall(
+            vm.expectCall(
                 address(creditManager),
-                abi.encodeCall(ICreditManagerV2.approveCreditAccount, (pool, curvePoolTokens[i], type(uint256).max))
+                abi.encodeCall(ICreditManagerV3.approveCreditAccount, (pool, curvePoolTokens[i], type(uint256).max))
             );
         }
 
         uint256 lpTokenMask = creditManager.tokenMasksMap(lpToken);
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.changeEnabledTokens, (lpTokenMask, 0)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.changeEnabledTokens, (lpTokenMask, 0)));
 
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (pool, callData)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (pool, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(pool);
 
         for (uint256 i = 0; i < nCoins; i++) {
-            evm.expectCall(
+            vm.expectCall(
                 address(creditManager),
-                abi.encodeCall(ICreditManagerV2.approveCreditAccount, (pool, curvePoolTokens[i], 1))
+                abi.encodeCall(ICreditManagerV3.approveCreditAccount, (pool, curvePoolTokens[i], 1))
             );
         }
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 
@@ -565,21 +565,21 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
     ) internal {
         uint256 nCoins = curvePoolTokens.length;
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
         uint256 tokensMask;
         for (uint256 i = 0; i < nCoins; i++) {
             tokensMask |= creditManager.tokenMasksMap(curvePoolTokens[i]);
         }
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.changeEnabledTokens, (tokensMask, 0)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.changeEnabledTokens, (tokensMask, 0)));
 
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (pool, callData)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (pool, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(pool);
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 
@@ -620,7 +620,7 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
     ) internal {
         uint256 nCoins = curvePoolTokens.length;
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
         uint256 tokensMask;
@@ -629,14 +629,14 @@ contract CurveV1AdapterHelper is DSTest, AdapterTestHelper, ICurveV1AdapterExcep
                 tokensMask |= creditManager.tokenMasksMap(curvePoolTokens[i]);
             }
         }
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.changeEnabledTokens, (tokensMask, 0)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.changeEnabledTokens, (tokensMask, 0)));
 
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (pool, callData)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (pool, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(pool);
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 

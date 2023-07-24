@@ -21,14 +21,11 @@ import "../../lib/constants.sol";
 import {CurveV1AdapterHelper} from "./CurveV1AdapterHelper.sol";
 
 // EXCEPTIONS
-import {
-    ZeroAddressException, NotImplementedException
-} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
 /// @title CurveV1AdapterCryptoTest
 /// @notice Designed for unit test purposes only
-contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
+contract CurveV1AdapterCryptoTest is TestHelper, CurveV1AdapterHelper {
     ICurveV1Adapter public adapter;
     CurveV1Mock public curveV1Mock;
 
@@ -76,7 +73,8 @@ contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), address(curveV1Mock), USER, callData, tokenIn, tokenOut, false);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cLINK, creditAccount, LINK_ACCOUNT_AMOUNT - LINK_EXCHANGE_AMOUNT);
 
@@ -142,7 +140,8 @@ contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), address(curveV1Mock), USER, callData, tokenIn, tokenOut, false);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cLINK, creditAccount, LINK_ACCOUNT_AMOUNT - LINK_EXCHANGE_AMOUNT);
 
@@ -213,7 +212,8 @@ contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
                 address(adapter), address(curveV1Mock), USER, expectedCallData, tokenIn, tokenOut, true
             );
 
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(tokenIn, creditAccount, 1);
 
@@ -256,7 +256,8 @@ contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
                 address(adapter), address(curveV1Mock), USER, expectedCallData, tokenIn, tokenOut, true
             );
 
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(tokenIn, creditAccount, LINK_ACCOUNT_AMOUNT / 2);
 
@@ -351,7 +352,7 @@ contract CurveV1AdapterCryptoTest is DSTest, CurveV1AdapterHelper {
 
     /// @dev [ACV1-15]: Adapter calc_add_one_coin works correctly
     function test_ACV1_15_calc_add_one_coin_works_correctly(uint256 amount) public {
-        evm.assume(amount < 10 ** 27);
+        vm.assume(amount < 10 ** 27);
         _setUp();
         for (uint256 i = 0; i < 2; i++) {
             int128 i128 = (int128(uint128(i)));

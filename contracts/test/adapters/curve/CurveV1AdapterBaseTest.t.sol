@@ -21,15 +21,11 @@ import "../../lib/constants.sol";
 import {CurveV1AdapterHelper} from "./CurveV1AdapterHelper.sol";
 
 // EXCEPTIONS
-import {
-    ZeroAddressException, NotImplementedException
-} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
 /// @title CurveV1AdapterBaseTest
 /// @notice Designed for unit test purposes only
-contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
+contract CurveV1AdapterBaseTest is TestHelper, CurveV1AdapterHelper {
     ICurveV1Adapter public adapter;
     CurveV1Mock public curveV1Mock;
 
@@ -65,7 +61,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
 
     /// @dev [ACV1-1]: constructor reverts for zero addresses and non allowed tokens
     function test_ACV1_01_constructor_reverts_for_zero_addresses_and_non_allowed_tokens() public {
-        evm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
+        vm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
         new CurveV1AdapterBase(
             address(creditManager),
             address(0),
@@ -74,7 +70,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
             2
         );
 
-        evm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
+        vm.expectRevert(abi.encodeWithSelector(ZeroAddressException.selector));
         new CurveV1AdapterBase(
             address(creditManager),
             address(curveV1Mock),
@@ -83,7 +79,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
             2
         );
 
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
 
         new CurveV1AdapterBase(
             address(creditManager),
@@ -109,7 +105,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
             coins[i] = address(0);
 
             mock = address(new CurveV1Mock(coins, underlying_coins));
-            evm.expectRevert(ZeroAddressException.selector);
+            vm.expectRevert(ZeroAddressException.selector);
             new CurveV1AdapterBase(
                 address(creditManager),
                 address(mock),
@@ -133,7 +129,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
             coins[i] = DUMB_ADDRESS;
 
             mock = address(new CurveV1Mock(coins, underlying_coins));
-            evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+            vm.expectRevert(TokenNotAllowedException.selector);
             new CurveV1AdapterBase(
                 address(creditManager),
                 address(mock),
@@ -146,7 +142,7 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
             underlying_coins[i] = DUMB_ADDRESS;
 
             mock = address(new CurveV1Mock(coins, underlying_coins));
-            evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+            vm.expectRevert(TokenNotAllowedException.selector);
             new CurveV1AdapterBase(
                 address(creditManager),
                 address(mock),
@@ -244,12 +240,12 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
 
     /// @dev [ACV1-3]: exchange reverts if user has no account
     function test_ACV1_03_swap_reverts_if_user_has_no_account() public {
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeWithSignature("exchange(int128,int128,uint256,uint256)", 0, 1, 1, 1)
         );
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeWithSignature("exchange_all(int128,int128,uint256)", 0, 0, 1)
         );
@@ -274,7 +270,8 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), address(curveV1Mock), USER, callData, tokenIn, tokenOut, true);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cDAI, creditAccount, DAI_ACCOUNT_AMOUNT - DAI_EXCHANGE_AMOUNT);
 
@@ -342,7 +339,8 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), address(curveV1Mock), USER, callData, tokenIn, tokenOut, true);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - DAI_EXCHANGE_AMOUNT);
 
@@ -432,7 +430,8 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
                     address(adapter), address(curveV1Mock), USER, expectedCallData, tokenIn, tokenOut, true
                 );
 
-                executeOneLineMulticall(address(adapter), callData);
+                vm.prank(USER);
+                creditFacade.multicall(creditAccount, calls);
 
                 expectBalance(tokenIn, creditAccount, DAI_ACCOUNT_AMOUNT / 2);
 
@@ -488,7 +487,8 @@ contract CurveV1AdapterBaseTest is DSTest, CurveV1AdapterHelper {
                     address(adapter), address(curveV1Mock), USER, expectedCallData, tokenIn, tokenOut, true
                 );
 
-                executeOneLineMulticall(address(adapter), callData);
+                vm.prank(USER);
+                creditFacade.multicall(creditAccount, calls);
 
                 expectBalance(tokenIn, creditAccount, 1);
 

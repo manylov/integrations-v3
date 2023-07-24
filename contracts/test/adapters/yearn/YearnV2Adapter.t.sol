@@ -3,11 +3,7 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
-import {
-    ICreditManagerV2,
-    ICreditManagerV2Exceptions
-} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {YearnV2Adapter} from "../../../adapters/yearn/YearnV2.sol";
 
@@ -20,13 +16,13 @@ import {YearnPriceFeed} from "../../../oracles/yearn/YearnPriceFeed.sol";
 import "../../lib/constants.sol";
 
 import {AdapterTestHelper} from "../AdapterTestHelper.sol";
-import {ERC20Mock} from "@gearbox-protocol/core-v2/contracts/test/mocks/token/ERC20Mock.sol";
+import {ERC20Mock} from "@gearbox-protocol/core-v3/contracts/test/mocks/token/ERC20Mock.sol";
 
 uint256 constant PRICE_PER_SHARE = (110 * WAD) / 100;
 
 /// @title YearnV2AdapterTest
 /// @notice Designed for unit test purposes only
-contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
+contract YearnV2AdapterTest is TestHelper, AdapterTestHelper {
     YearnV2Adapter public adapter;
     YearnV2Mock public yearnV2Mock;
     address public token;
@@ -42,7 +38,7 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
 
         yvDAI = address(yearnV2Mock);
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(
             yvDAI,
@@ -64,11 +60,11 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
 
         creditConfigurator.allowContract(address(yearnV2Mock), address(adapter));
 
-        evm.stopPrank();
+        vm.stopPrank();
         tokenTestSuite.mint(Tokens.DAI, USER, 10 * DAI_ACCOUNT_AMOUNT);
 
-        evm.label(address(adapter), "ADAPTER");
-        evm.label(address(yearnV2Mock), "YEARN_MOCK");
+        vm.label(address(adapter), "ADAPTER");
+        vm.label(address(yearnV2Mock), "YEARN_MOCK");
     }
 
     //
@@ -113,14 +109,14 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
             address(forbiddenToken)
         );
 
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
         new YearnV2Adapter(address(creditManager), address(forbidYearnV2Mock));
 
         YearnV2Mock notAllowedYearnV2Mock = new YearnV2Mock(
             tokenTestSuite.addressOf(Tokens.DAI)
         );
 
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
 
         new YearnV2Adapter(
             address(creditManager),
@@ -130,27 +126,27 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
 
     /// @dev [AYV2-3]: depost(*) and witdraw(*) revert if user has no account
     function test_AYV2_03_deposit_and_withdraw_revert_if_uses_has_no_account() public {
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeWithSignature("deposit()"));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeWithSignature("deposit(uint256)", 1000));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeWithSignature("deposit(uint256,address)", 1000, address(0)));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeWithSignature("withdraw()"));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeWithSignature("withdraw(uint256)", 1000));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeWithSignature("withdraw(uint256,address)", 1000, address(0))
         );
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeWithSignature("withdraw(uint256,address,uint256)", 1000, address(0), 2)
         );
@@ -224,7 +220,8 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
             address(adapter), address(yearnV2Mock), USER, expectedCallData, token, address(yearnV2Mock), true
         );
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - DAI_EXCHANGE_AMOUNT);
 
@@ -369,7 +366,7 @@ contract YearnV2AdapterTest is DSTest, AdapterTestHelper {
 
         uint256 amount = yAmount / 2;
 
-        evm.expectRevert(bytes("Loss too big"));
+        vm.expectRevert(bytes("Loss too big"));
         executeOneLineMulticall(
             address(adapter), abi.encodeWithSignature("withdraw(uint256,address,uint256)", amount, address(0), 2)
         );

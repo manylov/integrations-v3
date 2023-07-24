@@ -7,7 +7,7 @@ import { BigNumber } from "ethers";
 import { CMConfig } from "../core/pool";
 import { adapters } from "./adapters";
 
-export const mainnetCreditManagers: Array<CMConfig> = [
+export const mainnetCreditManagerV3s: Array<CMConfig> = [
   {
     symbol: "DAI",
     minAmount: WAD.mul(150000),

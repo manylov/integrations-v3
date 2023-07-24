@@ -3,25 +3,22 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacade.sol";
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
-import {NotImplementedException} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
+import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
 import {
     ConvexAdapterHelper,
     CURVE_LP_AMOUNT,
-    DAI_ACCOUNT_AMOUNT,
     REWARD_AMOUNT,
     REWARD_AMOUNT1,
     REWARD_AMOUNT2
 } from "./ConvexAdapterHelper.sol";
-import {ERC20Mock} from "@gearbox-protocol/core-v2/contracts/test/mocks/token/ERC20Mock.sol";
+import {ERC20Mock} from "@gearbox-protocol/core-v3/contracts/test/mocks/token/ERC20Mock.sol";
 
 import {USER, CONFIGURATOR, FRIEND} from "../../lib/constants.sol";
 
-import "@gearbox-protocol/core-v3/contracts/test/lib/test.sol";
+import "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
-contract ConvexV1BaseRewardPoolAdapterTest is DSTest, ConvexAdapterHelper, ICreditManagerV2Exceptions {
+contract ConvexV1BaseRewardPoolAdapterTest is TestHelper, ConvexAdapterHelper {
     function setUp() public {
         _setupConvexSuite(2);
     }

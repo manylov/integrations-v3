@@ -19,9 +19,7 @@ import "../../lib/constants.sol";
 import {CurveV1AdapterHelper} from "./CurveV1AdapterHelper.sol";
 
 // EXCEPTIONS
-import {
-    ZeroAddressException, NotImplementedException
-} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
 uint256 constant STETH_ADD_LIQUIDITY_AMOUNT = STETH_ACCOUNT_AMOUNT / 10;
 uint256 constant WETH_ADD_LIQUIDITY_AMOUNT = WETH_ACCOUNT_AMOUNT / 5;
@@ -30,7 +28,7 @@ uint256 constant RATE = 2;
 
 /// @title CurveV1StEthAdapterTest
 /// @notice Designed for unit test purposes only
-contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
+contract CurveV1StEthAdapterTest is TestHelper, CurveV1AdapterHelper {
     CurveV1AdapterStETH public adapter;
     CurveV1Mock public curveV1Mock;
     address public lp_token;
@@ -45,7 +43,7 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         tokenTestSuite.mint(Tokens.STETH, address(curveV1Mock), STETH_ACCOUNT_AMOUNT);
 
-        evm.deal(address(curveV1Mock), WETH_ACCOUNT_AMOUNT);
+        vm.deal(address(curveV1Mock), WETH_ACCOUNT_AMOUNT);
 
         lp_token = curveV1Mock.lp_token();
     }
@@ -62,7 +60,7 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         (address creditAccount, uint256 initialWethBalance) = _openTestCreditAccount();
 
-        evm.prank(USER);
+        vm.prank(USER);
         addCollateral(Tokens.STETH, STETH_ACCOUNT_AMOUNT);
 
         expectAllowance(Tokens.WETH, creditAccount, _curveV1stETHPoolGateway, 0);
@@ -82,7 +80,8 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         expectStETHAddLiquidityCalls(USER, callData);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.WETH, creditAccount, initialWethBalance - WETH_ADD_LIQUIDITY_AMOUNT);
 
@@ -110,7 +109,7 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         (address creditAccount, uint256 initialWethBalance) = _openTestCreditAccount();
 
-        evm.prank(USER);
+        vm.prank(USER);
         addCollateral(Tokens.STETH, STETH_ACCOUNT_AMOUNT);
 
         uint256 ethalanceBefore = address(curveV1Mock).balance;
@@ -139,7 +138,8 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         expectStETHRemoveLiquidityCalls(USER, callData);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         // balance -1 cause gateway takes it for gas efficience
         expectBalance(
@@ -193,7 +193,8 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), _curveV1stETHPoolGateway, USER, callData, tokenIn, tokenOut, true);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.WETH, creditAccount, initialWethBalance - WETH_EXCHANGE_AMOUNT);
 
@@ -228,7 +229,8 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), _curveV1stETHPoolGateway, USER, callData, tokenIn, tokenOut, true);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(tokenIn, creditAccount, CURVE_LP_ACCOUNT_AMOUNT - CURVE_LP_OPERATION_AMOUNT);
 
@@ -304,7 +306,8 @@ contract CurveV1StEthAdapterTest is DSTest, CurveV1AdapterHelper {
 
         expectStETHRemoveLiquidityImbalanceCalls(USER, callData, expectedAmounts);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(curveV1Mock.token(), creditAccount, CURVE_LP_ACCOUNT_AMOUNT - CURVE_LP_OPERATION_AMOUNT);
 

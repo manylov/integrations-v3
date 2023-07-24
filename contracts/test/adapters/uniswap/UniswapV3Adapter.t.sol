@@ -3,8 +3,6 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
-
 import {BytesLib} from "../../../integrations/uniswap/BytesLib.sol";
 
 import {ISwapRouter} from "../../../integrations/uniswap/IUniswapV3.sol";
@@ -21,7 +19,7 @@ import {AdapterTestHelper} from "../AdapterTestHelper.sol";
 
 /// @title UniswapV3AdapterTest
 /// @notice Designed for unit test purposes only
-contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExceptions {
+contract UniswapV3AdapterTest is TestHelper, AdapterTestHelper, IUniswapV3AdapterExceptions {
     using BytesLib for bytes;
 
     IUniswapV3Adapter public adapter;
@@ -61,11 +59,11 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
             connectors
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(address(uniswapMock), address(adapter));
 
-        evm.label(address(adapter), "ADAPTER");
-        evm.label(address(uniswapMock), "UNISWAP_V3_MOCK");
+        vm.label(address(adapter), "ADAPTER");
+        vm.label(address(uniswapMock), "UNISWAP_V3_MOCK");
 
         deadline = _getUniswapDeadline();
     }
@@ -167,32 +165,32 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
     /// @dev [AUV3-1]: swap reverts if user has no account
     function test_AUV3_01_swap_reverts_if_user_has_no_account() public {
         ISwapRouter.ExactInputSingleParams memory exactInputSingleParams = _getExactInputSingleParams();
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactInputSingle, (exactInputSingleParams)));
 
         ISwapRouter.ExactInputParams memory exactInputParams = _getExactInputParams();
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactInput, (exactInputParams)));
 
         IUniswapV3Adapter.ExactAllInputSingleParams memory exactAllInputSingleParams = _getAllInputSingleParams();
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeCall(adapter.exactAllInputSingle, (exactAllInputSingleParams))
         );
 
         IUniswapV3Adapter.ExactAllInputParams memory exactAllInputParams = _getAllInputParams();
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactAllInput, (exactAllInputParams)));
 
         ISwapRouter.ExactOutputSingleParams memory exactOutputSingleParams = _getExactOutputSingleParams();
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactOutputSingle, (exactOutputSingleParams)));
 
         ISwapRouter.ExactOutputParams memory exactOutputParams = _getExactOutputParams();
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactOutput, (exactOutputParams)));
     }
 
@@ -229,7 +227,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - DAI_EXCHANGE_AMOUNT);
 
@@ -281,7 +280,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, 1);
 
@@ -319,7 +319,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - DAI_EXCHANGE_AMOUNT);
 
@@ -367,7 +368,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, 1);
 
@@ -408,7 +410,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - ((DAI_EXCHANGE_AMOUNT / 2) * 1000) / 997);
 
@@ -443,7 +446,8 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         );
 
         // MULTICALL
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.DAI, creditAccount, initialDAIbalance - ((DAI_EXCHANGE_AMOUNT / 2) * 1000) / 997);
 
@@ -461,7 +465,7 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
         ISwapRouter.ExactOutputParams memory exactOutputParams = _getExactOutputParams();
         exactOutputParams.path = exactOutputParams.path.concat(abi.encodePacked(tokenTestSuite.addressOf(Tokens.USDC)));
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactOutput, (exactOutputParams)));
     }
 
@@ -481,7 +485,7 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
             bytes(abi.encodePacked(uint24(3000)))
         ).concat(bytes(abi.encodePacked(tokenTestSuite.addressOf(Tokens.WETH))));
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactInput, (exactInputParams)));
 
         IUniswapV3Adapter.ExactAllInputParams memory exactAllInputParams = _getAllInputParams();
@@ -496,7 +500,7 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
             bytes(abi.encodePacked(uint24(3000)))
         ).concat(bytes(abi.encodePacked(tokenTestSuite.addressOf(Tokens.WETH))));
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactAllInput, (exactAllInputParams)));
 
         ISwapRouter.ExactOutputParams memory exactOutputParams = _getExactOutputParams();
@@ -511,7 +515,7 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
             bytes(abi.encodePacked(uint24(3000)))
         ).concat(bytes(abi.encodePacked(tokenTestSuite.addressOf(Tokens.WETH))));
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactOutput, (exactOutputParams)));
 
         exactInputParams.path = bytes(abi.encodePacked(creditManager.underlying())).concat(
@@ -520,7 +524,7 @@ contract UniswapV3AdapterTest is DSTest, AdapterTestHelper, IUniswapV3AdapterExc
             bytes(abi.encodePacked(uint24(3000)))
         ).concat(bytes(abi.encodePacked(tokenTestSuite.addressOf(Tokens.WETH))));
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.exactInput, (exactInputParams)));
 
         exactInputParams.path = bytes(abi.encodePacked(creditManager.underlying())).concat(

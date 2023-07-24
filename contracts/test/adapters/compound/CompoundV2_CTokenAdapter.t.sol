@@ -4,7 +4,7 @@
 pragma solidity ^0.8.17;
 
 import {WAD} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
+
 import {CONFIGURATOR, USER} from "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
 import {CompoundV2_CErc20Adapter} from "../../../adapters/compound/CompoundV2_CErc20Adapter.sol";
@@ -31,49 +31,49 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
     function setUp() public {
         _setupCompoundSuite();
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         cethAdapter = new CompoundV2_CEtherAdapter(address(creditManager), address(gateway));
         creditConfigurator.allowContract(address(gateway), address(cethAdapter));
-        evm.label(address(cethAdapter), "cETH_ADAPTER");
+        vm.label(address(cethAdapter), "cETH_ADAPTER");
 
         cusdcAdapter = new CompoundV2_CErc20Adapter(address(creditManager), cusdc);
         creditConfigurator.allowContract(cusdc, address(cusdcAdapter));
-        evm.label(address(cusdcAdapter), "cUSDC_ADAPTER");
-        evm.stopPrank();
+        vm.label(address(cusdcAdapter), "cUSDC_ADAPTER");
+        vm.stopPrank();
     }
 
     /// @notice [ACV2CT-1]: All action functions revert if called not from the multicall
     function test_ACV2CT_01_action_functions_revert_if_called_not_from_multicall() public {
         _openTestCreditAccount();
 
-        evm.startPrank(USER);
+        vm.startPrank(USER);
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
                 isUsdc == 1 ? CompoundV2_CTokenAdapter(cusdcAdapter) : CompoundV2_CTokenAdapter(cethAdapter);
 
-            evm.expectRevert(IAdapterExceptions.CreditFacadeOnlyException.selector);
+            vm.expectRevert(CallerNotCreditFacadeException.selector);
             adapter.mint(1);
 
-            evm.expectRevert(IAdapterExceptions.CreditFacadeOnlyException.selector);
+            vm.expectRevert(CallerNotCreditFacadeException.selector);
             adapter.mintAll();
 
-            evm.expectRevert(IAdapterExceptions.CreditFacadeOnlyException.selector);
+            vm.expectRevert(CallerNotCreditFacadeException.selector);
             adapter.redeem(1);
 
-            evm.expectRevert(IAdapterExceptions.CreditFacadeOnlyException.selector);
+            vm.expectRevert(CallerNotCreditFacadeException.selector);
             adapter.redeemAll();
 
-            evm.expectRevert(IAdapterExceptions.CreditFacadeOnlyException.selector);
+            vm.expectRevert(CallerNotCreditFacadeException.selector);
             adapter.redeemUnderlying(1);
         }
-        evm.stopPrank();
+        vm.stopPrank();
     }
 
     /// @notice [ACV2CT-2] `mint` works correctly
     /// @dev Fuzzing time before deposit to see if adapter handles interest correctly
     function test_ACV2CT_02_mint_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        uint256 snapshot = evm.snapshot();
+        vm.assume(timedelta < 3 * 365 days);
+        uint256 snapshot = vm.snapshot();
 
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
@@ -86,13 +86,14 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
             expectAllowance(underlying, creditAccount, targetContract, 0);
 
-            evm.warp(block.timestamp + timedelta);
+            vm.warp(block.timestamp + timedelta);
             uint256 amountIn = initialBalance / 2;
             uint256 amountOutExpected = amountIn * WAD / CErc20Mock(cToken).exchangeRateCurrent();
 
             bytes memory callData = abi.encodeCall(adapter.mint, (amountIn));
             expectMulticallStackCalls(address(adapter), targetContract, USER, callData, underlying, cToken, true);
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(underlying, creditAccount, initialBalance - amountIn);
             expectBalance(cToken, creditAccount, amountOutExpected);
@@ -102,7 +103,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             expectTokenIsEnabled(underlying, true);
             expectTokenIsEnabled(cusdc, true);
 
-            evm.revertTo(snapshot);
+            vm.revertTo(snapshot);
         }
     }
 
@@ -113,15 +114,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
         CErc20Mock(cusdc).setFailing(true);
 
-        evm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, MINT_ERROR));
+        vm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, MINT_ERROR));
         executeOneLineMulticall(address(cusdcAdapter), abi.encodeCall(cusdcAdapter.mint, (1)));
     }
 
     /// @notice [ACV2CT-4] `mintAll` works correctly
     /// @dev Fuzzing time before deposit to see if adapter handles interest correctly
     function test_ACV2CT_04_mintAll_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        uint256 snapshot = evm.snapshot();
+        vm.assume(timedelta < 3 * 365 days);
+        uint256 snapshot = vm.snapshot();
 
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
@@ -134,7 +135,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
             expectAllowance(underlying, creditAccount, targetContract, 0);
 
-            evm.warp(block.timestamp + timedelta);
+            vm.warp(block.timestamp + timedelta);
             uint256 amountInExpected = initialBalance - 1;
             uint256 amountOutExpected = amountInExpected * WAD / CErc20Mock(cToken).exchangeRateCurrent();
 
@@ -144,7 +145,8 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             );
 
             bytes memory callData = abi.encodeCall(adapter.mintAll, ());
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(underlying, creditAccount, initialBalance - amountInExpected);
             expectBalance(cToken, creditAccount, amountOutExpected);
@@ -154,7 +156,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             expectTokenIsEnabled(underlying, false);
             expectTokenIsEnabled(cusdc, true);
 
-            evm.revertTo(snapshot);
+            vm.revertTo(snapshot);
         }
     }
 
@@ -165,15 +167,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
         CErc20Mock(cusdc).setFailing(true);
 
-        evm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, MINT_ERROR));
+        vm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, MINT_ERROR));
         executeOneLineMulticall(address(cusdcAdapter), abi.encodeCall(cusdcAdapter.mintAll, ()));
     }
 
     /// @notice [ACV2CT-6] `redeem` works correctly
     /// @dev Fuzzing time before withdrawal to see if adapter handles interest correctly
     function test_ACV2CT_06_redeem_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        uint256 snapshot = evm.snapshot();
+        vm.assume(timedelta < 3 * 365 days);
+        uint256 snapshot = vm.snapshot();
 
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
@@ -184,14 +186,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
             address targetContract = isUsdc == 1 ? cusdc : address(gateway);
 
-            evm.warp(block.timestamp + timedelta);
+            vm.warp(block.timestamp + timedelta);
             uint256 amountIn = initialBalance / 2;
             uint256 amountOutExpected = amountIn * CErc20Mock(cToken).exchangeRateCurrent() / WAD;
 
             bytes memory callData = abi.encodeCall(adapter.redeem, (amountIn));
             bool cethOnly = isUsdc == 0;
             expectMulticallStackCalls(address(adapter), targetContract, USER, callData, cToken, underlying, cethOnly);
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(underlying, creditAccount, amountOutExpected);
             expectBalance(cToken, creditAccount, initialBalance - amountIn);
@@ -199,7 +202,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             expectTokenIsEnabled(underlying, true);
             expectTokenIsEnabled(cToken, true);
 
-            evm.revertTo(snapshot);
+            vm.revertTo(snapshot);
         }
     }
 
@@ -210,15 +213,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
         CErc20Mock(cusdc).setFailing(true);
 
-        evm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_ERROR));
+        vm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_ERROR));
         executeOneLineMulticall(address(cusdcAdapter), abi.encodeCall(cusdcAdapter.redeem, (1)));
     }
 
     /// @notice [ACV2CT-8] `redeemAll` works correctly
     /// @dev Fuzzing time before withdrawal to see if adapter handles interest correctly
     function test_ACV2CT_08_redeemAll_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        uint256 snapshot = evm.snapshot();
+        vm.assume(timedelta < 3 * 365 days);
+        uint256 snapshot = vm.snapshot();
 
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
@@ -229,7 +232,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
             address targetContract = isUsdc == 1 ? cusdc : address(gateway);
 
-            evm.warp(block.timestamp + timedelta);
+            vm.warp(block.timestamp + timedelta);
             uint256 amountInExpected = initialBalance - 1;
             uint256 amountOutExpected = amountInExpected * CErc20Mock(cToken).exchangeRateCurrent() / WAD;
 
@@ -240,7 +243,8 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             );
 
             bytes memory callData = abi.encodeCall(adapter.redeemAll, ());
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(underlying, creditAccount, amountOutExpected);
             expectBalance(cToken, creditAccount, initialBalance - amountInExpected);
@@ -248,7 +252,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             expectTokenIsEnabled(underlying, true);
             expectTokenIsEnabled(cToken, false);
 
-            evm.revertTo(snapshot);
+            vm.revertTo(snapshot);
         }
     }
 
@@ -259,15 +263,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
         CErc20Mock(cusdc).setFailing(true);
 
-        evm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_ERROR));
+        vm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_ERROR));
         executeOneLineMulticall(address(cusdcAdapter), abi.encodeCall(cusdcAdapter.redeemAll, ()));
     }
 
     /// @notice [ACV2CT-10] `redeemUnderlying` works correctly
     /// @dev Fuzzing time before withdrawal to see if adapter handles interest correctly
     function test_ACV2CT_10_redeemUnderlying_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        uint256 snapshot = evm.snapshot();
+        vm.assume(timedelta < 3 * 365 days);
+        uint256 snapshot = vm.snapshot();
 
         for (uint256 isUsdc; isUsdc < 2; ++isUsdc) {
             CompoundV2_CTokenAdapter adapter =
@@ -278,14 +282,15 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
             address targetContract = isUsdc == 1 ? cusdc : address(gateway);
 
-            evm.warp(block.timestamp + timedelta);
+            vm.warp(block.timestamp + timedelta);
             uint256 amountOut = (initialBalance / 2) * CErc20Mock(cToken).exchangeRateCurrent() / WAD;
             uint256 amountInExpected = amountOut * WAD / CErc20Mock(cToken).exchangeRateCurrent();
 
             bytes memory callData = abi.encodeCall(adapter.redeemUnderlying, (amountOut));
             bool cethOnly = isUsdc == 0;
             expectMulticallStackCalls(address(adapter), targetContract, USER, callData, cToken, underlying, cethOnly);
-            executeOneLineMulticall(address(adapter), callData);
+            vm.prank(USER);
+            creditFacade.multicall(creditAccount, calls);
 
             expectBalance(underlying, creditAccount, amountOut);
             expectBalance(cToken, creditAccount, initialBalance - amountInExpected);
@@ -293,7 +298,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
             expectTokenIsEnabled(underlying, true);
             expectTokenIsEnabled(cToken, true);
 
-            evm.revertTo(snapshot);
+            vm.revertTo(snapshot);
         }
     }
 
@@ -304,7 +309,7 @@ contract CompoundV2_CTokenAdapter_Test is CompoundTestHelper {
 
         CErc20Mock(cusdc).setFailing(true);
 
-        evm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_UNDERLYING_ERROR));
+        vm.expectRevert(abi.encodeWithSelector(ICompoundV2_Exceptions.CTokenError.selector, REDEEM_UNDERLYING_ERROR));
         executeOneLineMulticall(address(cusdcAdapter), abi.encodeCall(cusdcAdapter.redeemUnderlying, (1)));
     }
 }

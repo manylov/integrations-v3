@@ -17,11 +17,11 @@ contract CompoundV2_CEtherAdapter_Test is CompoundTestHelper {
     function setUp() public {
         _setupCompoundSuite();
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         adapter = new CompoundV2_CEtherAdapter(address(creditManager), address(gateway));
         creditConfigurator.allowContract(address(gateway), address(adapter));
-        evm.label(address(adapter), "cETH_ADAPTER");
-        evm.stopPrank();
+        vm.label(address(adapter), "cETH_ADAPTER");
+        vm.stopPrank();
     }
 
     /// @notice [ACV2CETH-1]: Constructor sets correct values

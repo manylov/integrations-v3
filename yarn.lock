@@ -1023,10 +1023,10 @@
   dependencies:
     "@typechain/ethers-v5" "^10.2.1"
 
-"@gearbox-protocol/core-v3@^1.23.0":
-  version "1.23.0"
-  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.23.0.tgz#a09a0fc83910a9bced1c88d4e214c41039245fe8"
-  integrity sha512-nP70vigiY/p+NAOgo675CwmyJLH7A2vS5INnMxoiO/DlXVwQWh4IN4uWEDYBTrI2OX/B6kYMZrJVaLgGPP902w==
+"@gearbox-protocol/core-v3@^1.24.0":
+  version "1.24.0"
+  resolved "https://registry.yarnpkg.com/@gearbox-protocol/core-v3/-/core-v3-1.24.0.tgz#9f955478fdae164ad66c74eca470dceb57f07d7b"
+  integrity sha512-5rLld07XtqSMbDU8074TCEgxVhPiNXDaW2ix+q27pdhbkkAsyspIrIOUQVFW+V6cTJ+1OfXsvTga7BAYsf7Weg==
   dependencies:
     "@1inch/solidity-utils" "^2.2.27"
     "@gearbox-protocol/core-v2" "^1.19.0-base.3"

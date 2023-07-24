@@ -280,7 +280,7 @@ contract BPTWeightedPriceFeedSetup {
 
             uint256 i = low;
             uint256 j = high;
-            for (;;) {
+            while (true) {
                 while (data[i] < pVal) i++;
                 while (data[j] > pVal) j--;
                 if (i >= j) break;

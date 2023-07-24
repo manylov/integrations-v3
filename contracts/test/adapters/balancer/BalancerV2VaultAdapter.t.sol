@@ -3,10 +3,7 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {
-    ICreditManagerV2,
-    ICreditManagerV2Exceptions
-} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {
     IBalancerV2Vault,
@@ -38,6 +35,10 @@ import {Tokens} from "../../suites/TokensTestSuite.sol";
 // TEST
 import "../../lib/constants.sol";
 import {AdapterTestHelper} from "../AdapterTestHelper.sol";
+
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
+import {MultiCall} from "@gearbox-protocol/core-v2/contracts/libraries/MultiCall.sol";
+import {MultiCallBuilder} from "@gearbox-protocol/core-v3/contracts/test/lib/MultiCallBuilder.sol";
 
 bytes32 constant POOL_ID_1 = bytes32(uint256(1));
 bytes32 constant POOL_ID_2 = bytes32(uint256(2));
@@ -119,12 +120,12 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
             )
         );
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(bpt, bptPf);
         creditConfigurator.addCollateralToken(bpt, 9000);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         assets = new address[](2);
 
@@ -178,28 +179,28 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
             )
         );
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(bpt, bptPf);
         creditConfigurator.addCollateralToken(bpt, 9000);
 
-        evm.stopPrank();
+        vm.stopPrank();
 
         adapter = new BalancerV2VaultAdapter(
             address(creditManager),
             address(balancerMock)
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(address(balancerMock), address(adapter));
 
-        evm.label(address(adapter), "ADAPTER");
-        evm.label(address(balancerMock), "BALANCER_MOCK");
+        vm.label(address(adapter), "ADAPTER");
+        vm.label(address(balancerMock), "BALANCER_MOCK");
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         BalancerV2VaultAdapter(address(adapter)).setPoolIDStatus(POOL_ID_1, PoolStatus.ALLOWED);
         BalancerV2VaultAdapter(address(adapter)).setPoolIDStatus(POOL_ID_2, PoolStatus.ALLOWED);
-        evm.stopPrank();
+        vm.stopPrank();
 
         deadline = _getUniswapDeadline();
     }
@@ -221,45 +222,43 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
         IAsset[] memory assets,
         int256[] memory limits
     ) internal {
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
         for (uint256 i = 0; i < assets.length; ++i) {
             if (limits[i] > 1) {
-                evm.expectCall(
+                vm.expectCall(
                     address(creditManager),
                     abi.encodeCall(
-                        ICreditManagerV2.approveCreditAccount, (targetContract, address(assets[i]), type(uint256).max)
+                        ICreditManagerV3.approveCreditAccount, (targetContract, address(assets[i]), type(uint256).max)
                     )
                 );
             }
         }
 
-        evm.expectCall(
-            address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (targetContract, callData))
-        );
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (targetContract, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(targetContract);
 
         for (uint256 i = 0; i < assets.length; ++i) {
             if (limits[i] > 1) {
-                evm.expectCall(
+                vm.expectCall(
                     address(creditManager),
-                    abi.encodeCall(ICreditManagerV2.approveCreditAccount, (targetContract, address(assets[i]), 1))
+                    abi.encodeCall(ICreditManagerV3.approveCreditAccount, (targetContract, address(assets[i]), 1))
                 );
             }
         }
 
         for (uint256 i = 0; i < assets.length; ++i) {
             if (limits[i] < -1) {
-                evm.expectCall(
-                    address(creditManager), abi.encodeCall(ICreditManagerV2.checkAndEnableToken, (address(assets[i])))
+                vm.expectCall(
+                    address(creditManager), abi.encodeCall(ICreditManagerV3.checkAndEnableToken, (address(assets[i])))
                 );
             }
         }
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 
@@ -272,15 +271,15 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
         IAsset[] memory assets,
         uint256[] memory maxAmountsIn
     ) internal {
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
         for (uint256 i = 0; i < assets.length; ++i) {
             if (maxAmountsIn[i] > 1) {
-                evm.expectCall(
+                vm.expectCall(
                     address(creditManager),
                     abi.encodeCall(
-                        ICreditManagerV2.approveCreditAccount, (targetContract, address(assets[i]), type(uint256).max)
+                        ICreditManagerV3.approveCreditAccount, (targetContract, address(assets[i]), type(uint256).max)
                     )
                 );
             }
@@ -288,25 +287,23 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
 
         (address pool,) = balancerMock.getPool(poolId);
 
-        evm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV2.checkAndEnableToken, (pool)));
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.checkAndEnableToken, (pool)));
 
-        evm.expectCall(
-            address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (targetContract, callData))
-        );
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (targetContract, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(targetContract);
 
         for (uint256 i = 0; i < assets.length; ++i) {
             if (maxAmountsIn[i] > 1) {
-                evm.expectCall(
+                vm.expectCall(
                     address(creditManager),
-                    abi.encodeCall(ICreditManagerV2.approveCreditAccount, (targetContract, address(assets[i]), 1))
+                    abi.encodeCall(ICreditManagerV3.approveCreditAccount, (targetContract, address(assets[i]), 1))
                 );
             }
         }
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 
@@ -317,23 +314,21 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
         bytes memory callData,
         IAsset[] memory assets
     ) internal {
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
-        evm.expectCall(
-            address(creditManager), abi.encodeCall(ICreditManagerV2.executeOrder, (targetContract, callData))
-        );
+        vm.expectCall(address(creditManager), abi.encodeCall(ICreditManagerV3.executeOrder, (targetContract, callData)));
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(targetContract);
 
         for (uint256 i = 0; i < assets.length; ++i) {
-            evm.expectCall(
-                address(creditManager), abi.encodeCall(ICreditManagerV2.checkAndEnableToken, (address(assets[i])))
+            vm.expectCall(
+                address(creditManager), abi.encodeCall(ICreditManagerV3.checkAndEnableToken, (address(assets[i])))
             );
         }
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 
@@ -1006,10 +1001,10 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
     function test_ABV2_10_swap_join_revert_on_poolId_status() public {
         (address creditAccount, uint256 initialDAIBalance) = _openTestCreditAccount();
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         BalancerV2VaultAdapter(address(adapter)).setPoolIDStatus(POOL_ID_1, PoolStatus.SWAP_ONLY);
         BalancerV2VaultAdapter(address(adapter)).setPoolIDStatus(POOL_ID_2, PoolStatus.NOT_ALLOWED);
-        evm.stopPrank();
+        vm.stopPrank();
 
         {
             FundManagement memory fundManagement = FundManagement({
@@ -1036,7 +1031,7 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
                 deadline
             );
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(address(adapter), passedCallData);
         }
 
@@ -1052,7 +1047,7 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
                 IBalancerV2VaultAdapter.swapAll.selector, singleSwapAllData, RAY / (DAI_WETH_RATE * 2), deadline
             );
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(address(adapter), passedCallData);
         }
 
@@ -1088,7 +1083,7 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
                 toInternalBalance: true
             });
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(
                 address(adapter),
                 abi.encodeWithSelector(
@@ -1133,20 +1128,26 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
             bytes memory passedCallData =
                 abi.encodeWithSelector(IBalancerV2Vault.joinPool.selector, POOL_ID_1, USER, USER, request);
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(address(adapter), passedCallData);
         }
 
         {
-            bytes memory passedCallData = abi.encodeWithSelector(
-                IBalancerV2VaultAdapter.joinPoolSingleAsset.selector,
-                POOL_ID_1,
-                tokenTestSuite.addressOf(Tokens.DAI),
-                DAI_EXCHANGE_AMOUNT,
-                DAI_EXCHANGE_AMOUNT / 2
+            MultiCall[] memory calls = MultiCallBuilder.build(
+                MultiCall({
+                    target: address(adapter),
+                    callData: abi.encodeWithSelector(
+                        IBalancerV2VaultAdapter.joinPoolSingleAsset.selector,
+                        POOL_ID_1,
+                        tokenTestSuite.addressOf(Tokens.DAI),
+                        DAI_EXCHANGE_AMOUNT,
+                        DAI_EXCHANGE_AMOUNT / 2
+                        )
+                })
             );
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.prank(USER);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(address(adapter), passedCallData);
         }
 
@@ -1158,7 +1159,7 @@ contract BalancerV2VaultAdapterTest is AdapterTestHelper, IBalancerV2VaultAdapte
                 RAY / 2
             );
 
-            evm.expectRevert(PoolIDNotSupportedException.selector);
+            vm.expectRevert(PoolIDNotSupportedException.selector);
             executeOneLineMulticall(address(adapter), passedCallData);
         }
     }

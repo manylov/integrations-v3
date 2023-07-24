@@ -4,9 +4,9 @@
 pragma solidity ^0.8.10;
 
 import {PoolService} from "@gearbox-protocol/core-v2/contracts/pool/PoolService.sol";
-import {CreditFacade} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacade.sol";
+import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 
-import {CreditManager} from "@gearbox-protocol/core-v3/contracts/credit/CreditManager.sol";
+import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
 
 // TEST
 import "../../lib/constants.sol";
@@ -17,15 +17,15 @@ import {Tokens} from "../../config/Tokens.sol";
 import {LiveEnvHelper} from "../../suites/LiveEnvHelper.sol";
 import {IwstETH} from "../../../integrations/lido/IwstETH.sol";
 
-contract LiveWstETHV1AdapterTest is DSTest, LiveEnvHelper {
+contract LiveWstETHV1AdapterTest is TestHelper, LiveEnvHelper {
     function setUp() public liveOnly {
         _setUp();
     }
 
     /// @dev [WSTETHA-1]: Credit account for wsteth CM can be opened
     function test_live_WSTETHA_01_credit_account_can_be_opened() public liveOnly {
-        CreditFacade cf = lts.creditFacades(Tokens.wstETH);
-        CreditManager cm = lts.creditManagers(Tokens.wstETH);
+        CreditFacadeV3 cf = lts.creditFacades(Tokens.wstETH);
+        CreditManagerV3 cm = lts.creditManagers(Tokens.wstETH);
 
         tokenTestSuite.mint(Tokens.STETH, USER, wstETH_ACCOUNT_AMOUNT);
 
@@ -33,12 +33,12 @@ contract LiveWstETHV1AdapterTest is DSTest, LiveEnvHelper {
 
         IwstETH wstETH = IwstETH(tokenTestSuite.addressOf(Tokens.wstETH));
 
-        evm.startPrank(USER);
+        vm.startPrank(USER);
 
         uint256 amount = wstETH.wrap(wstETH_ACCOUNT_AMOUNT);
         wstETH.approve(address(cm), type(uint256).max);
 
         cf.openCreditAccount(amount, USER, 300, 0);
-        evm.stopPrank();
+        vm.stopPrank();
     }
 }

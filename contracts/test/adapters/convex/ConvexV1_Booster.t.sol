@@ -5,16 +5,16 @@ pragma solidity ^0.8.17;
 
 import {IBooster} from "../../../integrations/convex/IBooster.sol";
 
-import {ConvexAdapterHelper, CURVE_LP_AMOUNT, DAI_ACCOUNT_AMOUNT} from "./ConvexAdapterHelper.sol";
-import {ERC20Mock} from "@gearbox-protocol/core-v2/contracts/test/mocks/token/ERC20Mock.sol";
+import {ConvexAdapterHelper, CURVE_LP_AMOUNT} from "./ConvexAdapterHelper.sol";
+import {ERC20Mock} from "@gearbox-protocol/core-v3/contracts/test/mocks/token/ERC20Mock.sol";
 
 import {USER, CONFIGURATOR} from "../../lib/constants.sol";
 
-import "@gearbox-protocol/core-v3/contracts/test/lib/test.sol";
+import "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
-import {CallerNotConfiguratorException} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
+import {CallerNotConfiguratorException} from "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 
-contract ConvexV1BoosterAdapterTest is DSTest, ConvexAdapterHelper {
+contract ConvexV1BoosterAdapterTest is TestHelper, ConvexAdapterHelper {
     address creditAccount;
 
     function setUp() public {
@@ -29,11 +29,11 @@ contract ConvexV1BoosterAdapterTest is DSTest, ConvexAdapterHelper {
 
     /// @dev [ACVX1_B-1]: updateStakedPhantomTokensMap reverts when called not by configurtator
     function test_ACVX1_B_01_updateStakedPhantomTokensMap_access_restricted() public {
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         boosterAdapter.updateStakedPhantomTokensMap();
 
-        evm.expectRevert(CallerNotConfiguratorException.selector);
-        evm.prank(USER);
+        vm.expectRevert(CallerNotConfiguratorException.selector);
+        vm.prank(USER);
         boosterAdapter.updateStakedPhantomTokensMap();
     }
 

@@ -4,11 +4,8 @@
 pragma solidity ^0.8.17;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
-import {
-    ICreditManagerV2,
-    ICreditManagerV2Exceptions
-} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
+
+import {ICreditManagerV3} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV3.sol";
 
 import {WstETHV1Adapter} from "../../../adapters/lido/WstETHV1.sol";
 import {WstETHV1Mock} from "../../mocks/integrations/WstETHV1Mock.sol";
@@ -20,14 +17,13 @@ import "../../lib/constants.sol";
 import {Tokens} from "../../suites/TokensTestSuite.sol";
 
 import {AdapterTestHelper} from "../AdapterTestHelper.sol";
-import {ERC20Mock} from "@gearbox-protocol/core-v2/contracts/test/mocks/token/ERC20Mock.sol";
-import {StringUtils} from "@gearbox-protocol/core-v3/contracts/test/lib/StringUtils.sol";
+import {ERC20Mock} from "@gearbox-protocol/core-v3/contracts/test/mocks/token/ERC20Mock.sol";
 
 uint256 constant STETH_PER_TOKEN = (110 * WAD) / 100;
 
 /// @title WstETHV1AdapterTest
 /// @notice Designed for unit test purposes only
-contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
+contract WstETHV1AdapterTest is TestHelper, AdapterTestHelper {
     using StringUtils for string;
 
     WstETHV1Adapter public adapter;
@@ -42,7 +38,7 @@ contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
         wstETHMock = new WstETHV1Mock(stETH);
         wstETHMock.setStEthPerToken(STETH_PER_TOKEN);
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
 
         cft.priceOracle().addPriceFeed(
             address(wstETHMock),
@@ -64,12 +60,12 @@ contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
 
         creditConfigurator.allowContract(address(wstETHMock), address(adapter));
 
-        evm.stopPrank();
+        vm.stopPrank();
         tokenTestSuite.mint(Tokens.WETH, USER, 10 * WETH_ACCOUNT_AMOUNT);
 
-        evm.label(address(adapter), "ADAPTER");
-        evm.label(address(stETH), "STETH");
-        evm.label(address(wstETHMock), "WSTETH_MOCK");
+        vm.label(address(adapter), "ADAPTER");
+        vm.label(address(stETH), "STETH");
+        vm.label(address(wstETHMock), "WSTETH_MOCK");
     }
 
     //
@@ -124,7 +120,7 @@ contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
             address(forbiddenToken)
         );
 
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
         new WstETHV1Adapter(
             address(creditManager),
             address(forbidWstETHV1Mock)
@@ -133,7 +129,7 @@ contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
         WstETHV1Mock notAllowedWstETHV1Mock = new WstETHV1Mock(
             tokenTestSuite.addressOf(Tokens.STETH)
         );
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
         new WstETHV1Adapter(
             address(creditManager),
             address(notAllowedWstETHV1Mock)
@@ -142,16 +138,16 @@ contract WstETHV1AdapterTest is DSTest, AdapterTestHelper {
 
     /// @dev [AWSTV1-3]: wrap and unwrap reverts if user has no account
     function test_AWSTV1_03_wrap_and_unwrap_if_user_has_no_account() public {
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.wrapAll, ()));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.wrap, (1000)));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.unwrapAll, ()));
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.unwrap, (1000)));
     }
 

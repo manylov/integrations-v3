@@ -15,7 +15,7 @@ import {
 } from "@gearbox-protocol/sdk";
 import * as fs from "fs";
 
-import { mainnetCreditManagers, mainnetPools } from "../config/liveTests";
+import { mainnetCreditManagerV3s, mainnetPools } from "../config/liveTests";
 
 function safeEnum(t: string): string {
   if (!isNaN(parseInt(t.charAt(0), 10))) {
@@ -389,7 +389,7 @@ fs.writeFileSync("./contracts/test/config/SupportedContracts.sol", file);
 /// ---------------- CreditConfigLive.sol -----------------------------
 let config = "";
 
-for (let c of mainnetCreditManagers) {
+for (let c of mainnetCreditManagerV3s) {
   config += `cm = creditManagerHumanOpts[numOpts];`;
   config += `++numOpts;`;
   config += `cm.underlying = Tokens.${safeEnum(c.symbol)};`;

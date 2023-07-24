@@ -3,13 +3,12 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {CreditManager} from "@gearbox-protocol/core-v3/contracts/credit/CreditManager.sol";
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
+import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
 
 import {IBooster} from "../../../integrations/convex/IBooster.sol";
 import {IBaseRewardPool} from "../../../integrations/convex/IBaseRewardPool.sol";
 
-import {IPriceOracleV2Ext} from "@gearbox-protocol/core-v2/contracts/interfaces/IPriceOracle.sol";
+import {IPriceOracleV2Ext} from "@gearbox-protocol/core-v2/contracts/interfaces/IPriceOracleV2.sol";
 
 import {ConvexV1BaseRewardPoolAdapter} from "../../../adapters/convex/ConvexV1_BaseRewardPool.sol";
 import {ConvexV1BoosterAdapter} from "../../../adapters/convex/ConvexV1_Booster.sol";
@@ -19,17 +18,16 @@ import {BoosterMock} from "../../mocks/integrations/ConvexBoosterMock.sol";
 import {BaseRewardPoolMock} from "../../mocks/integrations/ConvexBaseRewardPoolMock.sol";
 import {ExtraRewardPoolMock} from "../../mocks/integrations/ConvexExtraRewardPoolMock.sol";
 
-import {PriceFeedMock} from "@gearbox-protocol/core-v2/contracts/test/mocks/oracles/PriceFeedMock.sol";
+import {PriceFeedMock} from "../../mocks/oracles/PriceFeedMock.sol";
 
 import {WAD, RAY} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
-import {ERC20Mock} from "@gearbox-protocol/core-v2/contracts/test/mocks/token/ERC20Mock.sol";
+import {ERC20Mock} from "@gearbox-protocol/core-v3/contracts/test/mocks/token/ERC20Mock.sol";
 
 import {AdapterTestHelper} from "../AdapterTestHelper.sol";
 
 import {USER, CONFIGURATOR, DAI_MIN_BORROWED_AMOUNT, DAI_MAX_BORROWED_AMOUNT} from "../../lib/constants.sol";
 
 uint256 constant CURVE_LP_AMOUNT = 10000 * RAY;
-uint256 constant DAI_ACCOUNT_AMOUNT = 10000 * WAD;
 uint256 constant REWARD_AMOUNT = RAY;
 uint256 constant REWARD_AMOUNT1 = RAY * 33;
 uint256 constant REWARD_AMOUNT2 = RAY * 4;
@@ -130,7 +128,7 @@ contract ConvexAdapterHelper is AdapterTestHelper {
             phantomToken
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(address(basePoolMock), address(basePoolAdapter));
 
         boosterAdapter = new ConvexV1BoosterAdapter(
@@ -138,10 +136,10 @@ contract ConvexAdapterHelper is AdapterTestHelper {
             address(boosterMock)
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(address(boosterMock), address(boosterAdapter));
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         boosterAdapter.updateStakedPhantomTokensMap();
     }
 
@@ -221,7 +219,7 @@ contract ConvexAdapterHelper is AdapterTestHelper {
             _addToken(extraRewardToken2_c);
         }
 
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
         new ConvexV1BaseRewardPoolAdapter(
             address(creditManager),
             address(basePoolMock_c),
@@ -230,10 +228,10 @@ contract ConvexAdapterHelper is AdapterTestHelper {
     }
 
     function _addToken(address token) internal {
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         priceOracle.addPriceFeed(token, address(feed));
         creditConfigurator.addCollateralToken(token, 9300);
-        evm.stopPrank();
+        vm.stopPrank();
     }
 
     function _makeRewardTokensMask(uint256 numExtras) internal view returns (uint256) {
@@ -309,7 +307,7 @@ contract ConvexAdapterHelper is AdapterTestHelper {
         uint256 stakingTokenMask = creditManager.tokenMasksMap(unwrap ? curveLPToken : convexLPToken);
         uint256 stakedTokenMask = creditManager.tokenMasksMap(phantomToken);
         uint256 rewardTokensMask = _makeRewardTokensMask(numExtras);
-        evm.expectCall(
+        vm.expectCall(
             address(creditManager),
             abi.encodeCall(
                 creditManager.changeEnabledTokens,
@@ -319,19 +317,19 @@ contract ConvexAdapterHelper is AdapterTestHelper {
     }
 
     function expectClaimStackCalls(address borrower, uint256 numExtras) internal {
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit MultiCallStarted(borrower);
 
-        evm.expectEmit(true, false, false, false);
+        vm.expectEmit(true, false, false, false);
         emit ExecuteOrder(address(basePoolMock));
 
-        evm.expectCall(address(basePoolMock), abi.encodeWithSignature("getReward()"));
-        evm.expectCall(
+        vm.expectCall(address(basePoolMock), abi.encodeWithSignature("getReward()"));
+        vm.expectCall(
             address(creditManager),
             abi.encodeCall(creditManager.changeEnabledTokens, (_makeRewardTokensMask(numExtras), 0))
         );
 
-        evm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, false);
         emit MultiCallFinished();
     }
 }

@@ -3,7 +3,6 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {IAdapterExceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
 import {CONFIGURATOR} from "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
 import {CompoundV2_CErc20Adapter} from "../../../adapters/compound/CompoundV2_CErc20Adapter.sol";
@@ -18,16 +17,16 @@ contract CompoundV2_CErc20Adapter_Test is CompoundTestHelper {
     function setUp() public {
         _setupCompoundSuite();
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         adapter = new CompoundV2_CErc20Adapter(address(creditManager), cusdc);
         creditConfigurator.allowContract(cusdc, address(adapter));
-        evm.label(address(adapter), "cUSDC_ADAPTER");
-        evm.stopPrank();
+        vm.label(address(adapter), "cUSDC_ADAPTER");
+        vm.stopPrank();
     }
 
     /// @notice [ACV2CERC-1]: Constructor reverts on not registered tokens
     function test_ACV2CERC_01_constructor_reverts_on_not_registered_tokens() public {
-        evm.expectRevert(IAdapterExceptions.TokenNotAllowedException.selector);
+        vm.expectRevert(TokenNotAllowedException.selector);
         new CompoundV2_CErc20Adapter(address(creditManager), cdai);
     }
 

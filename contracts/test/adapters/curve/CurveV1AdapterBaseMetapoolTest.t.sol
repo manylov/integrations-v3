@@ -8,7 +8,7 @@ import {ICurveV1Adapter} from "../../../interfaces/curve/ICurveV1Adapter.sol";
 import {ICurvePool} from "../../../integrations/curve/ICurvePool.sol";
 
 import {CurveV1MetapoolMock} from "../../mocks/integrations/CurveV1MetapoolMock.sol";
-import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacade.sol";
+import {MultiCall} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditFacadeV3.sol";
 
 import {Tokens} from "../../config/Tokens.sol";
 
@@ -21,7 +21,7 @@ import {CurveV1AdapterHelper} from "./CurveV1AdapterHelper.sol";
 
 /// @title CurveV1AdapterBaseMetaPoolTest
 /// @notice Designed for unit test purposes only
-contract CurveV1AdapterBaseMetaPoolTest is DSTest, CurveV1AdapterHelper {
+contract CurveV1AdapterBaseMetaPoolTest is TestHelper, CurveV1AdapterHelper {
     ICurveV1Adapter public adapter;
     CurveV1MetapoolMock public curveV1Mock;
 
@@ -71,7 +71,8 @@ contract CurveV1AdapterBaseMetaPoolTest is DSTest, CurveV1AdapterHelper {
 
         expectMulticallStackCalls(address(adapter), address(curveV1Mock), USER, callData, tokenIn, tokenOut, true);
 
-        executeOneLineMulticall(address(adapter), callData);
+        vm.prank(USER);
+        creditFacade.multicall(creditAccount, calls);
 
         expectBalance(Tokens.cLINK, creditAccount, LINK_ACCOUNT_AMOUNT - LINK_EXCHANGE_AMOUNT);
 

@@ -8,7 +8,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {WAD} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
 import {IWETH} from "@gearbox-protocol/core-v2/contracts/interfaces/external/IWETH.sol";
-import {ZeroAddressException} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {USER} from "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
 import {CEtherGateway} from "../../../adapters/compound/CEtherGateway.sol";

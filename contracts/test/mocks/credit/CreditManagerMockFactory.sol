@@ -3,34 +3,30 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {Adapter} from "@gearbox-protocol/core-v3/contracts/factories/CreditManagerFactoryBase.sol";
 import {ContractsRegister} from "@gearbox-protocol/core-v2/contracts/core/ContractsRegister.sol";
-import {ContractUpgrader} from "@gearbox-protocol/core-v2/contracts/support/ContractUpgrader.sol";
-import {
-    CreditConfigurator, CreditManagerOpts
-} from "@gearbox-protocol/core-v3/contracts/credit/CreditConfigurator.sol";
-import {CreditFacade} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacade.sol";
+import {CreditConfiguratorV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditConfiguratorV3.sol";
+import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 import {PoolService} from "@gearbox-protocol/core-v2/contracts/pool/PoolService.sol";
 
-import {CreditManagerLiveMock} from "./CreditManagerLiveMock.sol";
+import {CreditManagerV3LiveMock} from "./CreditManagerLiveMock.sol";
 
-/// @title CreditManagerMock factory
-/// @notice Same as `CreditManagerFactory` but configures mock credit manager
-contract CreditManagerMockFactory is ContractUpgrader {
-    CreditManagerLiveMock public creditManager;
-    CreditFacade public creditFacade;
-    CreditConfigurator public creditConfigurator;
+/// @title CreditManagerV3Mock factory
+/// @notice Same as `CreditManagerV3Factory` but configures mock credit manager
+contract CreditManagerMockFactory {
+    CreditManagerV3LiveMock public creditManager;
+    CreditFacadeV3 public creditFacade;
+    CreditConfiguratorV3 public creditConfigurator;
     PoolService public immutable pool;
 
     Adapter[] public adapters;
 
-    constructor(address _pool, CreditManagerOpts memory opts, uint256 salt)
+    constructor(address _pool, CreditManagerV3Opts memory opts, uint256 salt)
         ContractUpgrader(address(PoolService(_pool).addressProvider()))
     {
         pool = PoolService(_pool);
 
-        creditManager = new CreditManagerLiveMock(_pool);
-        creditFacade = new CreditFacade(
+        creditManager = new CreditManagerV3LiveMock(_pool);
+        creditFacade = new CreditFacadeV3(
             address(creditManager),
             opts.degenNFT,
             opts.blacklistHelper,
@@ -38,7 +34,7 @@ contract CreditManagerMockFactory is ContractUpgrader {
         );
 
         bytes memory configuratorByteCode =
-            abi.encodePacked(type(CreditConfigurator).creationCode, abi.encode(creditManager, creditFacade, opts));
+            abi.encodePacked(type(CreditConfiguratorV3).creationCode, abi.encode(creditManager, creditFacade, opts));
 
         address creditConfiguratorAddr = getAddress(configuratorByteCode, salt);
 
@@ -46,7 +42,7 @@ contract CreditManagerMockFactory is ContractUpgrader {
 
         deploy(configuratorByteCode, salt);
 
-        creditConfigurator = CreditConfigurator(creditConfiguratorAddr);
+        creditConfigurator = CreditConfiguratorV3(creditConfiguratorAddr);
 
         require(address(creditConfigurator.creditManager()) == address(creditManager), "Incorrect CM");
     }
@@ -108,9 +104,9 @@ contract CreditManagerMockFactory is ContractUpgrader {
             }
         }
 
-        cr.addCreditManager(address(creditManager));
+        cr.addCreditManagerV3(address(creditManager));
 
-        pool.connectCreditManager(address(creditManager));
+        pool.connectCreditManagerV3(address(creditManager));
 
         _postInstall();
     }

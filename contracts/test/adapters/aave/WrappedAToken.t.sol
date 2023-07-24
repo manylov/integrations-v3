@@ -4,7 +4,7 @@
 pragma solidity ^0.8.17;
 
 import {WAD} from "@gearbox-protocol/core-v2/contracts/libraries/Constants.sol";
-import {ZeroAddressException} from "@gearbox-protocol/core-v3/contracts/interfaces/IErrors.sol";
+import "@gearbox-protocol/core-v3/contracts/interfaces/IExceptions.sol";
 import {USDC_EXCHANGE_AMOUNT, FRIEND, USER} from "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
 import {WrappedAToken} from "../../../adapters/aave/WrappedAToken.sol";
@@ -24,12 +24,12 @@ contract WrappedATokenTest is AaveTestHelper {
         _setupAaveSuite(false);
 
         waToken = new WrappedAToken(IAToken(aUsdc));
-        evm.label(address(waToken), "waUSDC");
+        vm.label(address(waToken), "waUSDC");
     }
 
     /// @notice [WAT-1]: Constructor reverts on zero address
     function test_WAT_01_constructor_reverts_on_zero_address() public {
-        evm.expectRevert(ZeroAddressException.selector);
+        vm.expectRevert(ZeroAddressException.selector);
         new WrappedAToken(IAToken(address(0)));
     }
 
@@ -49,14 +49,14 @@ contract WrappedATokenTest is AaveTestHelper {
     ///      Generally, dust size grows with time and number of operations on the wrapper
     ///      Nevertheless, the test shows that wrapper stays solvent and doesn't lose deposited funds
     function test_WAT_03_balanceOfUnderlying_works_correctly(uint256 timedelta1, uint256 timedelta2) public {
-        evm.assume(timedelta1 < 5 * 365 days && timedelta2 < 5 * 365 days);
+        vm.assume(timedelta1 < 5 * 365 days && timedelta2 < 5 * 365 days);
         uint256 balance1;
         uint256 balance2;
 
         // mint equivalent amounts of aTokens and waTokens to first user and wait for some time
         _mintAToken(USER);
         _mintWAToken(USER);
-        evm.warp(block.timestamp + timedelta1);
+        vm.warp(block.timestamp + timedelta1);
 
         // balances must stay equivalent (up to some dust)
         balance1 = waToken.balanceOfUnderlying(USER);
@@ -70,7 +70,7 @@ contract WrappedATokenTest is AaveTestHelper {
         // now mint equivalent amounts of aTokens and  waTokens to second user and wait for more time
         _mintAToken(FRIEND);
         _mintWAToken(FRIEND);
-        evm.warp(block.timestamp + timedelta2);
+        vm.warp(block.timestamp + timedelta2);
 
         // balances must stay equivalent for both users
         balance1 = waToken.balanceOfUnderlying(USER);
@@ -101,8 +101,8 @@ contract WrappedATokenTest is AaveTestHelper {
     /// @dev Fuzzing time before deposit to see if wrapper handles interest properly
     /// @dev Final aUSDC balances are allowed to deviate by 1 from expected values due to rounding
     function test_WAT_05_deposit_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        evm.warp(block.timestamp + timedelta);
+        vm.assume(timedelta < 3 * 365 days);
+        vm.warp(block.timestamp + timedelta);
         uint256 amount = _mintAToken(USER);
 
         uint256 assets = amount / 2;
@@ -110,10 +110,10 @@ contract WrappedATokenTest is AaveTestHelper {
 
         tokenTestSuite.approve(aUsdc, USER, address(waToken), assets);
 
-        evm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, false, false, true);
         emit Deposit(USER, assets, expectedShares);
 
-        evm.prank(USER);
+        vm.prank(USER);
         uint256 shares = waToken.deposit(assets);
 
         assertEq(shares, expectedShares);
@@ -131,8 +131,8 @@ contract WrappedATokenTest is AaveTestHelper {
     /// @dev Fuzzing time before deposit to see if wrapper handles interest properly
     /// @dev Final aUSDC balances are allowed to deviate by 1 from expected values due to rounding
     function test_WAT_06_depositUnderlying_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
-        evm.warp(block.timestamp + timedelta);
+        vm.assume(timedelta < 3 * 365 days);
+        vm.warp(block.timestamp + timedelta);
         uint256 amount = _mintUnderlying(USER);
 
         uint256 assets = amount / 2;
@@ -140,12 +140,12 @@ contract WrappedATokenTest is AaveTestHelper {
 
         tokenTestSuite.approve(usdc, USER, address(waToken), assets);
 
-        evm.expectCall(address(lendingPool), abi.encodeCall(lendingPool.deposit, (usdc, assets, address(waToken), 0)));
+        vm.expectCall(address(lendingPool), abi.encodeCall(lendingPool.deposit, (usdc, assets, address(waToken), 0)));
 
-        evm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, false, false, true);
         emit Deposit(USER, assets, expectedShares);
 
-        evm.prank(USER);
+        vm.prank(USER);
         uint256 shares = waToken.depositUnderlying(assets);
 
         assertEq(shares, expectedShares);
@@ -163,18 +163,18 @@ contract WrappedATokenTest is AaveTestHelper {
     /// @dev Fuzzing time before deposit to see if wrapper handles interest properly
     /// @dev Final aUSDC balances are allowed to deviate by 1 from expected values due to rounding
     function test_WAT_07_withdraw_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
+        vm.assume(timedelta < 3 * 365 days);
         uint256 amount = _mintWAToken(USER);
-        evm.warp(block.timestamp + timedelta);
+        vm.warp(block.timestamp + timedelta);
 
         uint256 shares = amount / 2;
         uint256 expectedAssets = shares * waToken.exchangeRate() / WAD;
         uint256 wrapperBalance = tokenTestSuite.balanceOf(aUsdc, address(waToken));
 
-        evm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, false, false, true);
         emit Withdraw(USER, expectedAssets, shares);
 
-        evm.prank(USER);
+        vm.prank(USER);
         uint256 assets = waToken.withdraw(shares);
 
         assertEq(assets, expectedAssets);
@@ -192,20 +192,20 @@ contract WrappedATokenTest is AaveTestHelper {
     /// @dev Fuzzing time before deposit to see if wrapper handles interest properly
     /// @dev Final aUSDC balances are allowed to deviate by 1 from expected values due to rounding
     function test_WAT_08_withdrawUnderlying_works_correctly(uint256 timedelta) public {
-        evm.assume(timedelta < 3 * 365 days);
+        vm.assume(timedelta < 3 * 365 days);
         uint256 amount = _mintWAToken(USER);
-        evm.warp(block.timestamp + timedelta);
+        vm.warp(block.timestamp + timedelta);
 
         uint256 shares = amount / 2;
         uint256 expectedAssets = shares * waToken.exchangeRate() / WAD;
         uint256 wrapperBalance = tokenTestSuite.balanceOf(aUsdc, address(waToken));
 
-        evm.expectEmit(true, false, false, true);
+        vm.expectEmit(true, false, false, true);
         emit Withdraw(USER, expectedAssets, shares);
 
-        evm.expectCall(address(lendingPool), abi.encodeCall(lendingPool.withdraw, (usdc, expectedAssets, USER)));
+        vm.expectCall(address(lendingPool), abi.encodeCall(lendingPool.withdraw, (usdc, expectedAssets, USER)));
 
-        evm.prank(USER);
+        vm.prank(USER);
         uint256 assets = waToken.withdrawUnderlying(shares);
 
         assertEq(assets, expectedAssets);
@@ -228,11 +228,11 @@ contract WrappedATokenTest is AaveTestHelper {
         tokenTestSuite.approve(usdc, address(waToken), address(lendingPool), amount - 1);
 
         // waToken then should reset it back to max
-        evm.expectCall(
+        vm.expectCall(
             usdc, abi.encodeWithSignature("approve(address,uint256)", address(lendingPool), type(uint256).max)
         );
 
-        evm.prank(USER);
+        vm.prank(USER);
         waToken.depositUnderlying(amount);
     }
 
@@ -246,7 +246,7 @@ contract WrappedATokenTest is AaveTestHelper {
     function _mintAToken(address user) internal returns (uint256 amount) {
         amount = _mintUnderlying(user);
         tokenTestSuite.approve(usdc, user, address(lendingPool), amount);
-        evm.prank(user);
+        vm.prank(user);
         lendingPool.deposit(usdc, amount, address(user), 0);
     }
 
@@ -254,7 +254,7 @@ contract WrappedATokenTest is AaveTestHelper {
     function _mintWAToken(address user) internal returns (uint256 amount) {
         uint256 assets = _mintUnderlying(user);
         tokenTestSuite.approve(usdc, user, address(waToken), assets);
-        evm.prank(user);
+        vm.prank(user);
         amount = waToken.depositUnderlying(assets);
     }
 }

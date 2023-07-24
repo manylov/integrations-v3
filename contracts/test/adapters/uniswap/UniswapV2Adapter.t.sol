@@ -3,8 +3,6 @@
 // (c) Gearbox Holdings, 2023
 pragma solidity ^0.8.17;
 
-import {ICreditManagerV2Exceptions} from "@gearbox-protocol/core-v3/contracts/interfaces/ICreditManagerV2.sol";
-
 import {IUniswapV2Router02} from "../../../integrations/uniswap/IUniswapV2Router02.sol";
 import {UniswapV2Adapter} from "../../../adapters/uniswap/UniswapV2.sol";
 import {IUniswapV2Adapter, IUniswapV2AdapterExceptions} from "../../../interfaces/uniswap/IUniswapV2Adapter.sol";
@@ -53,11 +51,11 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
             connectors
         );
 
-        evm.prank(CONFIGURATOR);
+        vm.prank(CONFIGURATOR);
         creditConfigurator.allowContract(address(uniswapMock), address(adapter));
 
-        evm.label(address(adapter), "ADAPTER");
-        evm.label(address(uniswapMock), "UNISWAP_MOCK");
+        vm.label(address(adapter), "ADAPTER");
+        vm.label(address(uniswapMock), "UNISWAP_MOCK");
 
         deadline = _getUniswapDeadline();
     }
@@ -72,17 +70,17 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
     function test_AUV2_01_swap_reverts_if_user_has_no_account() public {
         address[] memory dumbPath;
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeCall(adapter.swapTokensForExactTokens, (0, 0, dumbPath, address(0), 0))
         );
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(
             address(adapter), abi.encodeCall(adapter.swapExactTokensForTokens, (0, 0, dumbPath, address(0), 0))
         );
 
-        evm.expectRevert(ICreditManagerV2Exceptions.HasNoOpenedAccountException.selector);
+        vm.expectRevert(HasNoOpenedAccountException.selector);
         executeOneLineMulticall(address(adapter), abi.encodeCall(adapter.swapAllTokensForTokens, (0, dumbPath, 0)));
     }
 
@@ -243,13 +241,13 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
         path[3] = tokenTestSuite.addressOf(Tokens.LINK);
         path[4] = tokenTestSuite.addressOf(Tokens.WETH);
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(adapter.swapExactTokensForTokens, (DAI_EXCHANGE_AMOUNT, 0, path, address(0), deadline))
         );
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(
@@ -258,7 +256,7 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
             )
         );
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(
@@ -272,13 +270,13 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
         path[2] = tokenTestSuite.addressOf(Tokens.LINK);
         path[3] = tokenTestSuite.addressOf(Tokens.WETH);
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(adapter.swapExactTokensForTokens, (DAI_EXCHANGE_AMOUNT, 0, path, address(0), deadline))
         );
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(adapter.swapExactTokensForTokens, (DAI_EXCHANGE_AMOUNT, 0, path, address(0), deadline))
@@ -290,7 +288,7 @@ contract UniswapV2AdapterTest is AdapterTestHelper, IUniswapV2AdapterExceptions 
         path[2] = tokenTestSuite.addressOf(Tokens.USDT);
         path[3] = tokenTestSuite.addressOf(Tokens.WETH);
 
-        evm.expectRevert(InvalidPathException.selector);
+        vm.expectRevert(InvalidPathException.selector);
         executeOneLineMulticall(
             address(adapter),
             abi.encodeCall(adapter.swapExactTokensForTokens, (DAI_EXCHANGE_AMOUNT, 0, path, address(0), deadline))

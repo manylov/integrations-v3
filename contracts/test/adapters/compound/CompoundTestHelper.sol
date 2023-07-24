@@ -46,19 +46,19 @@ contract CompoundTestHelper is AdapterTestHelper {
         ceth = address(new CEtherMock(0.02 ether, 0.05 ether));
         cusdc = address(new CErc20Mock(usdc, 0.02 ether, 0.025 ether));
         cdai = address(new CErc20Mock(dai, 0.02 ether, 0.02 ether));
-        evm.deal(ceth, 100e18);
+        vm.deal(ceth, 100e18);
         tokenTestSuite.mint(Tokens.USDC, cusdc, 100_000e6);
         tokenTestSuite.mint(Tokens.DAI, cdai, 100_000e18);
 
         // setup cETH gateway
         gateway = new CEtherGateway(weth, address(ceth));
 
-        evm.label(ceth, "cETH");
-        evm.label(cusdc, "cUSDC");
-        evm.label(cdai, "cDAI");
-        evm.label(address(gateway), "cETH_GATEWAY");
+        vm.label(ceth, "cETH");
+        vm.label(cusdc, "cUSDC");
+        vm.label(cdai, "cDAI");
+        vm.label(address(gateway), "cETH_GATEWAY");
 
-        evm.startPrank(CONFIGURATOR);
+        vm.startPrank(CONFIGURATOR);
         // add price feeds for cTokens to the oracle
         cft.priceOracle().addPriceFeed(
             ceth,
@@ -72,7 +72,7 @@ contract CompoundTestHelper is AdapterTestHelper {
         // enable cTokens as collateral tokens in the credit manager
         creditConfigurator.addCollateralToken(ceth, 8300);
         creditConfigurator.addCollateralToken(cusdc, 8300);
-        evm.stopPrank();
+        vm.stopPrank();
     }
 
     function _openAccountWithToken(Tokens token)
@@ -85,7 +85,7 @@ contract CompoundTestHelper is AdapterTestHelper {
         tokenTestSuite.mint(underlying, USER, balance);
 
         tokenTestSuite.approve(underlying, USER, address(creditManager), balance);
-        evm.prank(USER);
+        vm.prank(USER);
         creditFacade.addCollateral(USER, underlying, balance);
     }
 
@@ -100,17 +100,17 @@ contract CompoundTestHelper is AdapterTestHelper {
         tokenTestSuite.mint(underlying, USER, amount);
         if (token == Tokens.WETH) {
             tokenTestSuite.approve(underlying, USER, address(gateway), amount);
-            evm.prank(USER);
+            vm.prank(USER);
             gateway.mint(amount);
         } else {
             tokenTestSuite.approve(underlying, USER, cToken, amount);
-            evm.prank(USER);
+            vm.prank(USER);
             CErc20Mock(cToken).mint(amount);
         }
 
         balance = tokenTestSuite.balanceOf(cToken, USER);
         tokenTestSuite.approve(cToken, USER, address(creditManager), balance);
-        evm.prank(USER);
+        vm.prank(USER);
         creditFacade.addCollateral(USER, cToken, balance);
     }
 

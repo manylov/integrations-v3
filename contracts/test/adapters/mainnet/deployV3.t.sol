@@ -3,12 +3,12 @@
 // (c) Gearbox Holdings, 2022
 pragma solidity ^0.8.10;
 
-import {Pool4626} from "@gearbox-protocol/core-v3/contracts/pool/Pool4626.sol";
-import {PoolQuotaKeeper} from "@gearbox-protocol/core-v3/contracts/pool/PoolQuotaKeeper.sol";
-import {Gauge} from "@gearbox-protocol/core-v3/contracts/pool/Gauge.sol";
-import {CreditFacade} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacade.sol";
+import {PoolV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolV3.sol";
+import {PoolQuotaKeeperV3} from "@gearbox-protocol/core-v3/contracts/pool/PoolQuotaKeeperV3.sol";
+import {GaugeV3} from "@gearbox-protocol/core-v3/contracts/governance/GaugeV3.sol";
+import {CreditFacadeV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditFacadeV3.sol";
 
-import {CreditManager} from "@gearbox-protocol/core-v3/contracts/credit/CreditManager.sol";
+import {CreditManagerV3} from "@gearbox-protocol/core-v3/contracts/credit/CreditManagerV3.sol";
 
 // TEST
 import "../../lib/constants.sol";
@@ -19,14 +19,14 @@ import {Tokens} from "../../config/Tokens.sol";
 import {LiveEnvHelper} from "../../suites/LiveEnvHelper.sol";
 import {IwstETH} from "../../../integrations/lido/IwstETH.sol";
 
-contract LiveV3DeployTest is DSTest, LiveEnvHelper {
+contract LiveV3DeployTest is TestHelper, LiveEnvHelper {
     function setUp() public liveOnly {
         _setUp();
     }
 
     /// @dev [V3D-1]: Protocol is deployed as expected
     function test_live_V3D_01_protocol_is_deployed_as_expected() public liveOnly {
-        CreditFacade cf = lts.creditFacades(Tokens.USDC);
+        CreditFacadeV3 cf = lts.creditFacades(Tokens.USDC);
 
         assertTrue(cf.isBlacklistableUnderlying(), "USDC Credit Facade not set to blacklistable");
         assertEq(
@@ -44,16 +44,16 @@ contract LiveV3DeployTest is DSTest, LiveEnvHelper {
         Tokens[] memory underlyings = lts.getSupportedUnderlyings();
 
         for (uint256 i = 0; i < underlyings.length; ++i) {
-            CreditManager cm = lts.creditManagers(underlyings[i]);
+            CreditManagerV3 cm = lts.creditManagers(underlyings[i]);
 
             assertTrue(cm.supportsQuotas(), "Credit manager does not support quotas");
 
-            Pool4626 pool = Pool4626(cm.pool());
-            PoolQuotaKeeper pqk = PoolQuotaKeeper(pool.poolQuotaKeeper());
+            PoolV3 pool = PoolV3(cm.pool());
+            PoolQuotaKeeperV3 pqk = PoolQuotaKeeperV3(pool.poolQuotaKeeper());
 
-            assertTrue(address(pqk.gauge()) != address(0), "Gauge was not set in PQK");
+            assertTrue(address(pqk.gauge()) != address(0), "GaugeV3 was not set in PQK");
 
-            assertTrue(address(pqk.gauge().voter()) == address(lts.gearStaking()), "GearStaking was not set in gauge");
+            assertTrue(address(pqk.gauge().voter()) == address(lts.gearStaking()), "GearStakingV3 was not set in gauge");
 
             address[] memory quotedTokens = pqk.quotedTokens();
 

@@ -9,12 +9,9 @@ import {Contracts} from "../config/SupportedContracts.sol";
 import {AdapterData} from "../config/AdapterData.sol";
 import {SupportedContracts} from "../config/SupportedContracts.sol";
 
-import {Adapter} from "@gearbox-protocol/core-v3/contracts/factories/CreditManagerFactoryBase.sol";
+import {AdapterType} from "@gearbox-protocol/core-v3/contracts/interfaces/IAdapter.sol";
 
-import {AdapterType} from "@gearbox-protocol/core-v3/contracts/interfaces/adapters/IAdapter.sol";
-
-import "@gearbox-protocol/core-v3/contracts/test/lib/test.sol";
-import {CheatCodes, HEVM_ADDRESS} from "@gearbox-protocol/core-v3/contracts/test/lib/cheatCodes.sol";
+import "@gearbox-protocol/core-v3/contracts/test/lib/constants.sol";
 
 // SIMPLE ADAPTERS
 import {UniswapV2Adapter} from "../../adapters/uniswap/UniswapV2.sol";
@@ -23,8 +20,6 @@ import {YearnV2Adapter} from "../../adapters/yearn/YearnV2.sol";
 import {ConvexV1BoosterAdapter} from "../../adapters/convex/ConvexV1_Booster.sol";
 import {LidoV1Adapter} from "../../adapters/lido/LidoV1.sol";
 import {WstETHV1Adapter} from "../../adapters/lido/WstETHV1.sol";
-
-import {UniversalAdapter} from "@gearbox-protocol/core-v3/contracts/adapters/UniversalAdapter.sol";
 
 import {CurveV1Adapter2Assets} from "../../adapters/curve/CurveV1_2.sol";
 import {CurveV1Adapter3Assets} from "../../adapters/curve/CurveV1_3.sol";
@@ -39,8 +34,7 @@ import {TokensTestSuite} from "./TokensTestSuite.sol";
 
 // CURVE ADAPTERS
 
-contract AdapterDeployer is AdapterData, DSTest {
-    CheatCodes evm = CheatCodes(HEVM_ADDRESS);
+contract AdapterDeployer is AdapterData, TestHelper {
     Adapter[] public adapters;
     TokensTestSuite tokenTestSuite;
     SupportedContracts supportedContracts;
@@ -65,7 +59,7 @@ contract AdapterDeployer is AdapterData, DSTest {
                 Adapter memory newAdapter = deployAdapter(creditManager, adaptersList[i]);
 
                 adapters.push(newAdapter);
-                evm.label(
+                vm.label(
                     newAdapter.adapter,
                     string(abi.encodePacked(cmLabel, "_ADAPTER_", supportedContracts.nameOf(adaptersList[i])))
                 );
